@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import os
 import cv2 as cv
 import copy
@@ -51,14 +49,21 @@ def main():
     # 计算 CSV 的绝对路径
     base_dir = os.path.dirname(os.path.abspath(__file__))
     keypoint_label_path = os.path.join(base_dir, 'keypoint_classifier_label.csv')
+    model_path = os.path.join(base_dir, 'pytorch_mlp_model.pth')
+    scaler_path = os.path.join(base_dir, 'scaler.save')
 
-    # 初始化分类器（使用绝对路径）
-    keypoint_classifier = KeyPointClassifier(csv_path=keypoint_label_path)
+    # 初始化分类器（确保加载已有模型）
+    keypoint_classifier = KeyPointClassifier(
+        label_csv=keypoint_label_path,
+        model_path=model_path,
+        scaler_path=scaler_path,
+        load_existing_model=True
+    )
+
     # 读取标签（用于显示分类结果）
-    keypoint_classifier_labels = keypoint_classifier.labels
-  
-    fps_calc = CvFpsCalc(buffer_len=10)
+    keypoint_classifier_labels = keypoint_classifier.label_dict
 
+    fps_calc = CvFpsCalc(buffer_len=10)
     use_brect = True
     mode = 0
 
@@ -76,7 +81,7 @@ def main():
         image = cv.flip(image, 1)  # 镜像显示
         debug_image = copy.deepcopy(image)
 
-        # 检测手部（BGR -> RGB）
+        # 检测手部
         image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         results = detector.process(image_rgb)
 
@@ -86,19 +91,22 @@ def main():
                 landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
                 pre_processed_landmark_list = detector.pre_process_landmark(landmark_list)
-                # 数据记录（只记录预处理后的关键点）
-                logging_csv(number, mode, pre_processed_landmark_list, None)
 
-                # 调用分类器进行手势分类
-                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                if pre_processed_landmark_list:
+                    logging_csv(number, mode, pre_processed_landmark_list, None)
+                    hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                    label_text = keypoint_classifier_labels[hand_sign_id] if hand_sign_id >= 0 else "Unknown"
+                    print(f"Detected hand_sign_id: {hand_sign_id}, Label: {label_text}")
 
-                # 绘制检测框和关键点
+                else:
+                    hand_sign_id = -1
+                    label_text = "Unknown"
+
+                label_text = keypoint_classifier_labels[hand_sign_id] if hand_sign_id >= 0 else "Unknown"
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
-                # 在图像上显示识别结果（仅显示 KeyPointClassifier 的标签）
-                debug_image = draw_info_text(debug_image, brect, handedness,
-                                             keypoint_classifier_labels[hand_sign_id],
-                                             "")
+                debug_image = draw_info_text(debug_image, brect, handedness, label_text, "")
+
         debug_image = draw_info(debug_image, fps, mode, number)
         cv.imshow('Hand Gesture Recognition', debug_image)
 

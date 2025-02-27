@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import os  # 一定要记得导入 os
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -18,7 +15,7 @@ class MLP(nn.Module):
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_dim, num_classes)
-        
+
     def forward(self, x):
         out = self.fc1(x)
         out = self.relu(out)
@@ -27,22 +24,26 @@ class MLP(nn.Module):
 
 class KeyPointClassifier:
     def __init__(self,
-                 csv_path='keypoint_classifier_label.csv',
                  label_csv='keypoint_classifier_label.csv',
                  data_csv='keypoint.csv',
+                 model_path='pytorch_mlp_model.pth',
+                 scaler_path='scaler.save',
                  batch_size=32,
                  learning_rate=0.001,
                  num_epochs=20,
                  hidden_dim=100,
                  test_size=0.2,
-                 random_state=42):
+                 random_state=42,
+                 load_existing_model=True):  # 新增参数：是否加载已有模型
+
         # 获取当前脚本所在的绝对目录
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
         # 拼接文件的完整路径
-        label_csv_path = os.path.join(base_dir, label_csv)
-        data_csv_path  = os.path.join(base_dir, data_csv)
-
+        label_csv_path = os.path.join(base_dir, 'keypoint_classifier_label.csv')
+        data_csv_path = os.path.join(base_dir, data_csv)
+        self.model_path = os.path.join(base_dir, model_path)
+        self.scaler_path = os.path.join(base_dir, scaler_path)
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
@@ -57,8 +58,8 @@ class KeyPointClassifier:
 
         # 2. 读取训练数据 keypoint.csv
         data = pd.read_csv(data_csv_path)
-        self.y = data.iloc[:, 0].values    # 第一列为标签
-        self.X = data.iloc[:, 1:].values   # 其余列为特征
+        self.y = data.iloc[:, 0].values  # 第一列为标签
+        self.X = data.iloc[:, 1:].values  # 其余列为特征
 
         # 3. 划分训练集和测试集
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
@@ -66,9 +67,16 @@ class KeyPointClassifier:
         )
 
         # 4. 标准化
-        self.scaler = StandardScaler()
-        self.X_train = self.scaler.fit_transform(self.X_train)
-        self.X_test = self.scaler.transform(self.X_test)
+        if os.path.exists(self.scaler_path) and load_existing_model:
+            print(f"Loading existing scaler from {self.scaler_path}")
+            self.scaler = joblib.load(self.scaler_path)
+            self.X_train = self.scaler.transform(self.X_train)
+            self.X_test = self.scaler.transform(self.X_test)
+        else:
+            print("No existing scaler found, creating a new one.")
+            self.scaler = StandardScaler()
+            self.X_train = self.scaler.fit_transform(self.X_train)
+            self.X_test = self.scaler.transform(self.X_test)
 
         # 5. 转换为 PyTorch 的 Tensor 并构造 DataLoader
         X_train_tensor = torch.tensor(self.X_train, dtype=torch.float32)
@@ -83,12 +91,19 @@ class KeyPointClassifier:
 
         # 6. 构造模型
         self.input_dim = self.X_train.shape[1]  # 特征数
-        self.num_classes = len(self.label_dict)   # 类别数
+        self.num_classes = len(self.label_dict)  # 类别数
         self.model = MLP(self.input_dim, self.hidden_dim, self.num_classes)
 
         # 7. 定义损失函数和优化器
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+
+        # 8. 加载已有模型（如果存在）
+        if os.path.exists(self.model_path) and load_existing_model:
+            print(f"Loading existing model from {self.model_path}")
+            self.model.load_state_dict(torch.load(self.model_path))
+        else:
+            print("No existing model found, training from scratch.")
 
     def train_model(self):
         for epoch in range(self.num_epochs):
@@ -102,7 +117,7 @@ class KeyPointClassifier:
                 self.optimizer.step()
                 running_loss += loss.item() * inputs.size(0)
             epoch_loss = running_loss / len(self.train_loader.dataset)
-            print(f"Epoch {epoch+1}/{self.num_epochs}, Loss: {epoch_loss:.4f}")
+            print(f"Epoch {epoch + 1}/{self.num_epochs}, Loss: {epoch_loss:.4f}")
 
     def evaluate(self):
         self.model.eval()
@@ -117,24 +132,17 @@ class KeyPointClassifier:
         accuracy = correct / total
         print(f"Test Accuracy: {accuracy:.4f}")
 
-    def save_model(self, model_path='pytorch_mlp_model.pth', scaler_path='scaler.save'):
-        torch.save(self.model.state_dict(), model_path)
-        joblib.dump(self.scaler, scaler_path)
-        print("Model and scaler saved.")
+    def save_model(self):
+        torch.save(self.model.state_dict(), self.model_path)
+        joblib.dump(self.scaler, self.scaler_path)
+        print(f"Model saved to {self.model_path}")
+        print(f"Scaler saved to {self.scaler_path}")
 
     def predict(self, landmark_list):
-        """
-        对输入的预处理关键点列表进行预测，返回预测类别的索引。
-        假设 landmark_list 是一个一维列表或数组，其长度与训练时特征数一致。
-        """
         import numpy as np
-        # 将输入转换为二维数组（1, 特征数）
         landmark_array = np.array(landmark_list).reshape(1, -1)
-        # 使用已经拟合好的 scaler 进行标准化
         landmark_array = self.scaler.transform(landmark_array)
-        # 转换为 torch tensor
         input_tensor = torch.tensor(landmark_array, dtype=torch.float32)
-        # 模型预测
         self.model.eval()
         with torch.no_grad():
             outputs = self.model(input_tensor)
@@ -144,8 +152,9 @@ class KeyPointClassifier:
     def __call__(self, landmark_list):
         return self.predict(landmark_list)
 
+
 if __name__ == '__main__':
-    classifier = KeyPointClassifier()
-    classifier.train_model()
-    classifier.evaluate()
-    classifier.save_model()
+    classifier = KeyPointClassifier(load_existing_model=True)  # 载入已有模型
+    classifier.train_model()  # 继续训练
+    classifier.evaluate()  # 评估
+    classifier.save_model()  # 保存最新的模型
