@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import TensorDataset, DataLoader
 import joblib
 
-# 定义一个简单的多层感知机模型
+# Define a simple Multi-Layer Perceptron (MLP) model
 class MLP(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_classes):
         super(MLP, self).__init__()
@@ -34,12 +34,12 @@ class KeyPointClassifier:
                  hidden_dim=100,
                  test_size=0.2,
                  random_state=42,
-                 load_existing_model=True):  # 新增参数：是否加载已有模型
+                 load_existing_model=True):  
 
-        # 获取当前脚本所在的绝对目录
+        # Get the absolute directory of the current script
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # 拼接文件的完整路径
+        # Construct the full path for files
         label_csv_path = os.path.join(base_dir, 'keypoint_classifier_label.csv')
         data_csv_path = os.path.join(base_dir, data_csv)
         self.model_path = os.path.join(base_dir, model_path)
@@ -51,22 +51,22 @@ class KeyPointClassifier:
         self.test_size = test_size
         self.random_state = random_state
 
-        # 1. 读取 label 文件，构造映射
+        # Read the label file and create a mapping
         label_mapping = pd.read_csv(label_csv_path, header=None)
         self.label_dict = {i: label_mapping.iloc[i, 0] for i in range(len(label_mapping))}
         self.labels = self.label_dict
 
-        # 2. 读取训练数据 keypoint.csv
+        # Read the training data from keypoint.csv
         data = pd.read_csv(data_csv_path)
-        self.y = data.iloc[:, 0].values  # 第一列为标签
-        self.X = data.iloc[:, 1:].values  # 其余列为特征
+        self.y = data.iloc[:, 0].values  
+        self.X = data.iloc[:, 1:].values  
 
-        # 3. 划分训练集和测试集
+        # Split the dataset into training and testing sets
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X, self.y, test_size=self.test_size, random_state=self.random_state
         )
 
-        # 4. 标准化
+        # Standardization
         if os.path.exists(self.scaler_path) and load_existing_model:
             print(f"Loading existing scaler from {self.scaler_path}")
             self.scaler = joblib.load(self.scaler_path)
@@ -78,7 +78,7 @@ class KeyPointClassifier:
             self.X_train = self.scaler.fit_transform(self.X_train)
             self.X_test = self.scaler.transform(self.X_test)
 
-        # 5. 转换为 PyTorch 的 Tensor 并构造 DataLoader
+        # Convert to PyTorch Tensors and create DataLoaders
         X_train_tensor = torch.tensor(self.X_train, dtype=torch.float32)
         y_train_tensor = torch.tensor(self.y_train, dtype=torch.long)
         X_test_tensor = torch.tensor(self.X_test, dtype=torch.float32)
@@ -89,16 +89,16 @@ class KeyPointClassifier:
         self.train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
         self.test_loader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
 
-        # 6. 构造模型
-        self.input_dim = self.X_train.shape[1]  # 特征数
-        self.num_classes = len(self.label_dict)  # 类别数
+        #  Build the model
+        self.input_dim = self.X_train.shape[1]  
+        self.num_classes = len(self.label_dict)  
         self.model = MLP(self.input_dim, self.hidden_dim, self.num_classes)
 
-        # 7. 定义损失函数和优化器
+        # Define the loss function and optimizer
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-        # 8. 加载已有模型（如果存在）
+        # Load an existing model
         if os.path.exists(self.model_path) and load_existing_model:
             print(f"Loading existing model from {self.model_path}")
             self.model.load_state_dict(torch.load(self.model_path))
@@ -154,7 +154,7 @@ class KeyPointClassifier:
 
 
 if __name__ == '__main__':
-    classifier = KeyPointClassifier(load_existing_model=True)  # 载入已有模型
-    classifier.train_model()  # 继续训练
-    classifier.evaluate()  # 评估
-    classifier.save_model()  # 保存最新的模型
+    classifier = KeyPointClassifier(load_existing_model=True)  
+    classifier.train_model()  
+    classifier.evaluate()  
+    classifier.save_model() 

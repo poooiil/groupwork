@@ -23,36 +23,36 @@ def get_args():
 
 def select_mode(key, mode):
     number = -1
-    if 48 <= key <= 57:  # 数字 0~9
+    if 48 <= key <= 57:  # number 0~9
         number = key - 48
-    if key == 110:  # n 键
+    if key == 110:  # n 
         mode = 0
-    if key == 107:  # k 键
+    if key == 107:  # k 
         mode = 1
-    if key == 104:  # h 键
+    if key == 104:  # h 
         mode = 2
     return number, mode
 
 def main():
     args = get_args()
 
-    # 初始化摄像头
+    # Initialize the camera
     camera = Camera(device=args.device, width=args.width, height=args.height)
 
-    # 初始化 MediaPipe 手部检测器
+    # Initialize MediaPipe hand detector
     detector = HandDetector(
         static_image_mode=args.use_static_image_mode,
         min_detection_confidence=args.min_detection_confidence,
         min_tracking_confidence=args.min_tracking_confidence
     )
 
-    # 计算 CSV 的绝对路径
+    # Compute the absolute path of the CSV file
     base_dir = os.path.dirname(os.path.abspath(__file__))
     keypoint_label_path = os.path.join(base_dir, 'keypoint_classifier_label.csv')
     model_path = os.path.join(base_dir, 'pytorch_mlp_model.pth')
     scaler_path = os.path.join(base_dir, 'scaler.save')
 
-    # 初始化分类器（确保加载已有模型）
+    # Initialize classifier
     keypoint_classifier = KeyPointClassifier(
         label_csv=keypoint_label_path,
         model_path=model_path,
@@ -60,7 +60,7 @@ def main():
         load_existing_model=True
     )
 
-    # 读取标签（用于显示分类结果）
+    # Read labels
     keypoint_classifier_labels = keypoint_classifier.label_dict
 
     fps_calc = CvFpsCalc(buffer_len=10)
@@ -71,17 +71,17 @@ def main():
         fps = fps_calc.get()
 
         key = cv.waitKey(10)
-        if key == 27:  # ESC 退出
+        if key == 27:  
             break
         number, mode = select_mode(key, mode)
 
         ret, image = camera.get_frame()
         if not ret:
             break
-        image = cv.flip(image, 1)  # 镜像显示
+        image = cv.flip(image, 1)  
         debug_image = copy.deepcopy(image)
 
-        # 检测手部
+        # Detect hands
         image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         results = detector.process(image_rgb)
 

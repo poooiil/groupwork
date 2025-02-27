@@ -34,7 +34,7 @@ def main():
             break
 
         cv.imshow('Camera', frame)
-        if cv.waitKey(1) & 0xFF == 27:  # 按 ESC 键退出
+        if cv.waitKey(1) & 0xFF == 27:  
             break
 
     camera.release()

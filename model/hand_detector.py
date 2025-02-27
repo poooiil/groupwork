@@ -20,12 +20,12 @@ class HandDetector:
 
     def pre_process_landmark(self, landmark_list):
         temp_landmark_list = copy.deepcopy(landmark_list)
-        # 转换为相对坐标
+        # Convert to relative coordinates
         base_x, base_y = temp_landmark_list[0][0], temp_landmark_list[0][1]
         for idx, point in enumerate(temp_landmark_list):
             temp_landmark_list[idx][0] -= base_x
             temp_landmark_list[idx][1] -= base_y
-        # 一维化
+        # Flatten
         temp_landmark_list = list(itertools.chain.from_iterable(temp_landmark_list))
         max_value = max(list(map(abs, temp_landmark_list)))
         temp_landmark_list = [n / max_value for n in temp_landmark_list]
@@ -41,7 +41,7 @@ class HandDetector:
         temp_point_history = list(itertools.chain.from_iterable(temp_point_history))
         return temp_point_history
 
-# 独立函数：计算包围手部的矩形框
+# Calculate the bounding rectangle around the hand
 def calc_bounding_rect(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
     landmark_array = np.empty((0, 2), int)
@@ -52,7 +52,7 @@ def calc_bounding_rect(image, landmarks):
     x, y, w, h = cv.boundingRect(landmark_array)
     return [x, y, x + w, y + h]
 
-# 独立函数：提取每个关键点坐标
+# Extract the coordinates of each key point
 def calc_landmark_list(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
     landmark_list = []
