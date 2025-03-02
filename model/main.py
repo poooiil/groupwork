@@ -2,6 +2,8 @@ import os
 import cv2 as cv
 import copy
 import argparse
+import socket
+import time
 
 from keypoint_classifier.keypoint_classifier import KeyPointClassifier
 
@@ -67,6 +69,17 @@ def main():
     use_brect = True
     mode = 0
 
+    # Create connection to UDP socket
+    server_address = ('127.0.0.1', 65432)
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # Variables for prediction stability
+    last_pred = None
+    curr_pred = None
+    inter_pred = None
+    pred_time = None
+    stability_duration = 2
+
     while True:
         fps = fps_calc.get()
 
@@ -97,10 +110,33 @@ def main():
                     hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
                     label_text = keypoint_classifier_labels[hand_sign_id] if hand_sign_id >= 0 else "Unknown"
                     print(f"Detected hand_sign_id: {hand_sign_id}, Label: {label_text}")
-
                 else:
                     hand_sign_id = -1
                     label_text = "Unknown"
+
+                if curr_pred == label_text: 
+                    # If prediction is the same, calculate stability
+                    if pred_time is None:
+                        pred_time = time.time()
+                    elif time.time() - pred_time >= stability_duration:
+                        # Check prediction is different from last prediction, or intermediate prediction exists
+                        if curr_pred != last_pred or inter_pred is not None:
+                            last_pred = curr_pred
+                            inter_pred = None
+
+                            # Send prediction to socket
+                            try:
+                                message = curr_pred.encode('utf-8')
+                                print(f'Sent hand_sign_label: {message}, to {server_address}')
+                                udp_socket.sendto(message, server_address)
+                            except socket.timeout:
+                                print('Socket timeout')
+                else:
+                    # Reset timer if prediction changes, and track intermediate prediction
+                    pred_time = None
+                    if curr_pred != last_pred:
+                        inter_pred = curr_pred
+                    curr_pred = label_text
 
                 label_text = keypoint_classifier_labels[hand_sign_id] if hand_sign_id >= 0 else "Unknown"
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
@@ -109,6 +145,9 @@ def main():
 
         debug_image = draw_info(debug_image, fps, mode, number)
         cv.imshow('Hand Gesture Recognition', debug_image)
+
+    # Close the socket
+    udp_socket.close()
 
     camera.release()
     cv.destroyAllWindows()
