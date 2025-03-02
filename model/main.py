@@ -74,9 +74,9 @@ def main():
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # Variables for prediction stability
-    last_pred = None
-    curr_pred = None
-    inter_pred = None
+    last_pred = -1
+    curr_pred = -1
+    inter_pred = -1
     pred_time = None
     stability_duration = 2
 
@@ -113,7 +113,7 @@ def main():
                     hand_sign_id = -1
                     label_text = "Unknown"
 
-                if curr_pred == label_text: 
+                if curr_pred == hand_sign_id: 
                     # If prediction is the same, calculate stability
                     if pred_time is None:
                         pred_time = time.time()
@@ -125,8 +125,8 @@ def main():
 
                             # Send prediction to socket
                             try:
-                                message = curr_pred.encode('utf-8')
-                                print(f'Sent hand_sign_label: {message}, to {server_address}')
+                                message = keypoint_classifier_labels[curr_pred].encode('utf-8')
+                                print(f"Sent hand_sign_label: {message} to {server_address}")
                                 udp_socket.sendto(message, server_address)
                             except socket.timeout:
                                 print('Socket timeout')
@@ -136,7 +136,7 @@ def main():
                     pred_time = None
                     if curr_pred != last_pred:
                         inter_pred = curr_pred
-                    curr_pred = label_text
+                    curr_pred = hand_sign_id
 
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
