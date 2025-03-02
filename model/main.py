@@ -109,7 +109,6 @@ def main():
                     logging_csv(number, mode, pre_processed_landmark_list, None)
                     hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
                     label_text = keypoint_classifier_labels[hand_sign_id] if hand_sign_id >= 0 else "Unknown"
-                    print(f"Detected hand_sign_id: {hand_sign_id}, Label: {label_text}")
                 else:
                     hand_sign_id = -1
                     label_text = "Unknown"
@@ -133,6 +132,7 @@ def main():
                                 print('Socket timeout')
                 else:
                     # Reset timer if prediction changes, and track intermediate prediction
+                    print(f"Detected hand_sign_id: {hand_sign_id}, Label: {label_text}")
                     pred_time = None
                     if curr_pred != last_pred:
                         inter_pred = curr_pred
