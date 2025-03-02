@@ -138,7 +138,6 @@ def main():
                         inter_pred = curr_pred
                     curr_pred = label_text
 
-                label_text = keypoint_classifier_labels[hand_sign_id] if hand_sign_id >= 0 else "Unknown"
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
                 debug_image = draw_info_text(debug_image, brect, handedness, label_text, "")
