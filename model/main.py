@@ -23,6 +23,8 @@ def get_args():
     parser.add_argument("--min_tracking_confidence", type=float, default=0.5)
     parser.add_argument("--server_address", type=str, default='127.0.0.1', help="UDP server address")
     parser.add_argument("--server_port", type=int, default=65432, help="UDP server port")
+    parser.add_argument("--stability_threshold", type=int, default=2000,
+                        help="Threshold for prediction stability in milliseconds")
     return parser.parse_args()
 
 def select_mode(key, mode):
@@ -80,7 +82,7 @@ def main():
     curr_pred = -1
     inter_pred = -1
     pred_time = None
-    stability_duration = 2
+    stability_threshold = args.stability_threshold / 1000.0
 
     while True:
         fps = fps_calc.get()
@@ -119,7 +121,7 @@ def main():
                     # If prediction is the same, calculate stability
                     if pred_time is None:
                         pred_time = time.time()
-                    elif time.time() - pred_time >= stability_duration:
+                    elif time.time() - pred_time >= stability_threshold:
                         # Check prediction is different from last prediction, or intermediate prediction exists
                         if curr_pred != last_pred or inter_pred is not None:
                             last_pred = curr_pred
