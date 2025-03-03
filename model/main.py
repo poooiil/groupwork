@@ -73,7 +73,9 @@ def main():
     use_brect = True
     mode = 0
 
-    # Create connection to UDP socket
+    # --- Written by Jake Wright (github.com/wjake), 2025 ---
+    # Establishes UDP socket connection and initialises variables for prediction stability.
+
     server_address = (args.server_address, args.server_port)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -83,6 +85,8 @@ def main():
     inter_pred = -1
     pred_time = None
     stability_threshold = args.stability_threshold / 1000.0
+
+    # --- End of code written by Jake Wright ---
 
     while True:
         fps = fps_calc.get()
@@ -117,6 +121,9 @@ def main():
                     hand_sign_id = -1
                     label_text = "Unknown"
 
+                # --- Code written by Jake Wright (github.com/wjake), 2025 ---
+                # Logic for prediction stability and sending hand gesture prediction to UDP socket.
+
                 if curr_pred == hand_sign_id: 
                     # If prediction is the same, calculate stability
                     if pred_time is None:
@@ -141,6 +148,8 @@ def main():
                     if curr_pred != last_pred:
                         inter_pred = curr_pred
                     curr_pred = hand_sign_id
+
+                # --- End of code written by Jake Wright ---
 
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
