@@ -21,6 +21,8 @@ def get_args():
     parser.add_argument('--use_static_image_mode', action='store_true')
     parser.add_argument("--min_detection_confidence", type=float, default=0.7)
     parser.add_argument("--min_tracking_confidence", type=float, default=0.5)
+    parser.add_argument("--server_address", type=str, default='127.0.0.1', help="UDP server address")
+    parser.add_argument("--server_port", type=int, default=65432, help="UDP server port")
     return parser.parse_args()
 
 def select_mode(key, mode):
@@ -70,7 +72,7 @@ def main():
     mode = 0
 
     # Create connection to UDP socket
-    server_address = ('127.0.0.1', 65432)
+    server_address = (args.server_address, args.server_port)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # Variables for prediction stability
