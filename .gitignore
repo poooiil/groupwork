@@ -1,5 +1,7 @@
 # compiled output
 __pycache__/
+dist/
+build/
 
 # Environment 
 .python-version
