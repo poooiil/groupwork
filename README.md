@@ -37,3 +37,16 @@ ID | Label | Gesture
 `2` | `explode` | Explode
 `3` | `wind` | Wind
 `4` | `shrink` | Shrink
+
+## License & Copyright
+
+This repository is a modification of hand-gesture-recognition-using-mediapipe (Takahashi, 2020) which is under the [Apache v2 license](LICENSE).
+
+### Modification Summary
+- TODO: Add modification summaries
+- Added hand gesture stability check
+- Added UDP socket message sending
+
+## References
+
+Takahashi, S. (2020) Hand Gesture Recognition Using MediaPipe. Available at: https://github.com/Kazuhito00/hand-gesture-recognition-using-mediapipe (Accessed: 5 April 2025).
